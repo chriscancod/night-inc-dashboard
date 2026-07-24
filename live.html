@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Dashboard — Night.inc</title>
+<meta name="description" content="Real-time studio dashboard — store sales, app downloads, carspootz leaderboard, and monthly winner coupons.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 fill=%27%2304040a%27/%3E%3Ccircle cx=%2744%27 cy=%2752%27 r=%2726%27 fill=%27%23b8dff8%27/%3E%3Ccircle cx=%2756%27 cy=%2744%27 r=%2722%27 fill=%27%2304040a%27/%3E%3Cpath d=%27M78 20L81 27L88 30L81 33L78 40L75 33L68 30L75 27Z%27 fill=%27%23b8dff8%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html"><span class="dot"></span>NIGHT.INC</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Work</a></li>
+    <li><a href="live.html" class="active">Live Dashboard</a></li>
+    <li><a href="https://2amcases.online" target="_blank" rel="noopener">2AM Store ↗</a></li>
+  </ul>
+</nav>
+
+<div id="auth-gate" class="auth-gate" style="display:none">
+  <div class="auth-box">
+    <div class="hero-eye">Night.inc</div>
+    <h2>Enter Password</h2>
+    <input id="auth-input" type="password" class="auth-input" placeholder="Dashboard password" autocomplete="current-password">
+    <button id="auth-submit" class="btn btn-fill" style="width:100%;margin-top:14px">Unlock</button>
+    <p id="auth-error" class="err" style="display:none;margin-top:12px">Wrong password.</p>
+  </div>
+</div>
+
+<div id="dashboard-content" style="display:none">
+
+<header class="hero" style="padding:60px 0 40px">
+  <div class="wrap">
+    <div class="hero-eye">Unified Ops Dashboard</div>
+    <h1 class="hero-title" style="font-size:clamp(36px,7vw,64px)">Live Studio Stats</h1>
+    <p class="hero-sub" id="last-updated" style="font-family:var(--m);font-size:11px;letter-spacing:.1em;color:var(--muted-dim)">Loading…</p>
+  </div>
+</header>
+
+<div class="wrap" style="padding-bottom:80px">
+
+  <div class="panel" id="connections-panel" style="margin-bottom:32px"><div class="skel">Checking connections…</div></div>
+
+  <div id="insight-panel"><div class="skel">Generating insight…</div></div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="panel" id="purchases-panel"><div class="skel">Loading purchase stats…</div></div>
+    <div class="panel" id="downloads-panel"><div class="skel">Loading download stats…</div></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.3fr 1fr" id="leaderboard">
+    <div class="panel" id="leaderboard-panel"><div class="skel">Loading leaderboard…</div></div>
+    <div class="panel" id="winner-panel"><div class="skel">Loading this month's winner…</div></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr" id="engagement">
+    <div class="panel" id="engagement-panel"><div class="skel">Loading engagement…</div></div>
+    <div class="panel" id="history-panel"><div class="skel">Loading history…</div></div>
+  </div>
+
+</div>
+
+<footer class="foot">
+  <div class="wrap">Night.inc — chrisclm713@gmail.com · refreshes every 60s</div>
+</footer>
+
+</div>
+
+<script>
+  window.DASH_CONFIG = {
+    // Point this at the deployed backend URL once dashboard/backend is on
+    // Railway (same pattern as cungus's CONFIG.BACKEND_URL). Defaults to
+    // localhost for local dev.
+    BACKEND_URL: 'http://localhost:4100',
+  };
+</script>
+<script src="shared/dashboard.js"></script>
+</body>
+</html>
