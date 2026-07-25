@@ -340,6 +340,84 @@ async function loadEngagement() {
   }
 }
 
+async function loadCoupons() {
+  try {
+    const d = await fetchJSON('/api/coupons/active');
+    const rows = (d.coupons || []).map(c => {
+      const amount = c.discount_type === 'percent' ? `${c.discount_value}% off` : `$${Number(c.discount_value).toFixed(2)} off`;
+      const bits = [amount];
+      if (c.auto_generated) bits.push('auto-generated');
+      if (c.expires_at) bits.push(`expires ${new Date(c.expires_at).toLocaleDateString()}`);
+      if (c.description) bits.push(c.description);
+      return `
+        <div class="cpn-row">
+          <span class="cpn-code">${c.code}</span>
+          <span class="cpn-meta">${bits.join(' · ')}</span>
+        </div>
+      `;
+    }).join('') || `<div class="skel">No active coupons yet — create one above.</div>`;
+    setHTML('cpn-list', rows);
+  } catch (e) {
+    setHTML('cpn-list', `<div class="err">Coupon list unavailable.</div>`);
+  }
+}
+
+function randomCouponCode() {
+  return 'PROMO-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+async function createCoupon() {
+  const status = document.getElementById('cpn-status');
+  const btn = document.getElementById('cpn-create-btn');
+  const codeInput = document.getElementById('cpn-code');
+  const type = document.getElementById('cpn-type').value;
+  const value = document.getElementById('cpn-value').value;
+  const maxUses = document.getElementById('cpn-max-uses').value;
+  const expires = document.getElementById('cpn-expires').value;
+  const desc = document.getElementById('cpn-desc').value;
+
+  if (!value || Number(value) <= 0) {
+    status.textContent = 'Enter an amount greater than 0.';
+    status.className = 'err';
+    return;
+  }
+
+  const code = (codeInput.value.trim() || randomCouponCode()).toUpperCase();
+  btn.disabled = true;
+  status.textContent = 'Creating…';
+  status.className = '';
+
+  try {
+    await fetchJSON('/api/coupons/create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        discount_type: type,
+        discount_value: Number(value),
+        description: desc || undefined,
+        max_uses: maxUses ? Number(maxUses) : undefined,
+        // <input type=date> gives midnight local time; store as end-of-day UTC
+        // so a coupon stays valid through the whole day the merchant picked.
+        expires_at: expires ? new Date(expires + 'T23:59:59').toISOString() : undefined,
+      }),
+    });
+    status.textContent = `Created ${code}.`;
+    status.className = 'ok';
+    codeInput.value = '';
+    document.getElementById('cpn-value').value = '';
+    document.getElementById('cpn-max-uses').value = '';
+    document.getElementById('cpn-expires').value = '';
+    document.getElementById('cpn-desc').value = '';
+    await loadCoupons();
+  } catch (e) {
+    status.textContent = e.message.includes('409') ? `Code ${code} already exists — try another.` : 'Could not create coupon.';
+    status.className = 'err';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function refreshAll() {
   loadConnections();
   loadInsight();
@@ -349,6 +427,7 @@ function refreshAll() {
   loadWinner();
   loadWinnersHistory();
   loadEngagement();
+  loadCoupons();
   const stamp = document.getElementById('last-updated');
   if (stamp) stamp.textContent = `Last updated ${new Date().toLocaleTimeString()}`;
 }
@@ -358,6 +437,8 @@ function startDashboard() {
   setInterval(refreshAll, REFRESH_MS);
   const closeBtn = document.getElementById('close-month-btn');
   if (closeBtn) closeBtn.addEventListener('click', closeMonth);
+  const cpnBtn = document.getElementById('cpn-create-btn');
+  if (cpnBtn) cpnBtn.addEventListener('click', createCoupon);
 }
 
 document.addEventListener('DOMContentLoaded', initAuth);

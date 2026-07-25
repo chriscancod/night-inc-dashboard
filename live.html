@@ -52,6 +52,44 @@
     <div class="panel" id="downloads-panel"><div class="skel">Loading download stats…</div></div>
   </div>
 
+  <div class="panel" id="coupons-panel" style="margin-bottom:32px">
+    <div class="panel-head"><div class="panel-title">Coupons — 2AM Store</div></div>
+    <div class="cpn-form">
+      <div>
+        <label for="cpn-code">Code</label>
+        <input id="cpn-code" placeholder="Blank = auto-generate">
+      </div>
+      <div>
+        <label for="cpn-type">Type</label>
+        <select id="cpn-type">
+          <option value="fixed_amount">$ off</option>
+          <option value="percent">% off</option>
+        </select>
+      </div>
+      <div>
+        <label for="cpn-value">Amount</label>
+        <input id="cpn-value" type="number" min="0" step="0.01" placeholder="5">
+      </div>
+      <div>
+        <label for="cpn-max-uses">Max uses</label>
+        <input id="cpn-max-uses" type="number" min="1" placeholder="Unlimited">
+      </div>
+      <div>
+        <label for="cpn-expires">Expires</label>
+        <input id="cpn-expires" type="date">
+      </div>
+      <div>
+        <label for="cpn-desc">Description</label>
+        <input id="cpn-desc" placeholder="Optional">
+      </div>
+      <div class="cpn-submit">
+        <button id="cpn-create-btn" class="btn btn-fill">Create Coupon</button>
+      </div>
+    </div>
+    <p id="cpn-status" style="min-height:14px;margin-top:10px"></p>
+    <div id="cpn-list" style="margin-top:18px"><div class="skel">Loading active coupons…</div></div>
+  </div>
+
   <div class="grid" style="grid-template-columns:1.3fr 1fr" id="leaderboard">
     <div class="panel" id="leaderboard-panel"><div class="skel">Loading leaderboard…</div></div>
     <div class="panel">
