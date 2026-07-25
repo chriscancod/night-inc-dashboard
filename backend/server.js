@@ -2,8 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const fetch   = require('node-fetch');
-const fs      = require('fs');
-const path    = require('path');
 
 const app  = express();
 const PORT = process.env.PORT || 4100;
@@ -11,21 +9,38 @@ const PORT = process.env.PORT || 4100;
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-// ── Winner/coupon persistence (same pattern as cungus/backend/data) ──────────
-const DATA_DIR     = path.join(__dirname, 'data');
-const WINNERS_FILE = path.join(DATA_DIR, 'winners.json');
+// ── mambru-backend client — logs in once, caches the JWT, re-auths on 401.
+// Distinct from this dashboard's own DASHBOARD_PASSWORD gate below: that one
+// protects the dashboard operator's browser session, this one authenticates
+// dashboard/backend itself as a mambru API client. ─────────────────────────
+const MAMBRU_URL = process.env.MAMBRU_URL || 'http://localhost:4200';
+let mambruToken = null;
 
-function loadWinners() {
-  try { return JSON.parse(fs.readFileSync(WINNERS_FILE, 'utf8')); }
-  catch (e) { return []; }
-}
-function saveWinners(list) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(WINNERS_FILE, JSON.stringify(list, null, 2));
+async function mambruLogin() {
+  const r = await fetch(`${MAMBRU_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: process.env.MAMBRU_DASHBOARD_PASSWORD }),
+  });
+  if (!r.ok) throw new Error(`mambru login failed: HTTP ${r.status}`);
+  const data = await r.json();
+  return data.token;
 }
 
-function currentMonthKey(d = new Date()) {
-  return d.toISOString().slice(0, 7); // YYYY-MM
+async function mambruFetch(path, opts = {}) {
+  if (!mambruToken) mambruToken = await mambruLogin();
+  let res = await fetch(`${MAMBRU_URL}${path}`, {
+    ...opts,
+    headers: { ...(opts.headers || {}), Authorization: `Bearer ${mambruToken}` },
+  });
+  if (res.status === 401) {
+    mambruToken = await mambruLogin();
+    res = await fetch(`${MAMBRU_URL}${path}`, {
+      ...opts,
+      headers: { ...(opts.headers || {}), Authorization: `Bearer ${mambruToken}` },
+    });
+  }
+  return res;
 }
 
 // ── Square — real purchase stats, reusing cungus's Square account ────────────
@@ -206,7 +221,11 @@ async function callClaude(system, user, maxTokens = 300) {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5',
+        // Defaults to Haiku 4.5 — cheapest tier, chosen for the $5/mo Railway
+        // plan; this is a cached-every-10-minutes internal summary, not a
+        // customer-facing feature, so the quality/cost tradeoff favors cost.
+        // Override with CLAUDE_DEFAULT_MODEL if quality ever disappoints.
+        model: process.env.CLAUDE_DEFAULT_MODEL || 'claude-haiku-4-5',
         max_tokens: maxTokens,
         system,
         messages: [{ role: 'user', content: user }],
@@ -310,60 +329,43 @@ app.get('/api/insights', async (req, res) => {
   res.json({ insight, generatedWith: insightsCache.generatedWith, cached: false });
 });
 
-function generateCouponCode(prefix) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const seg = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `${prefix}-${seg}-${Math.floor(100 + Math.random() * 900)}`;
-}
-
-// Determines (and persists) this month's winner + a Claude-written coupon
-// message. Idempotent per app+month so repeat calls/polling don't regenerate
-// a new code every time.
-app.get('/api/coupon/monthly-winner/:app', async (req, res) => {
-  const appKey   = req.params.app.toLowerCase();
-  const monthKey = currentMonthKey();
-  const winners  = loadWinners();
-  const existing = winners.find(w => w.app === appKey && w.month === monthKey);
-  if (existing) return res.json(existing);
-
-  if (appKey !== 'carspootz') {
-    return res.status(501).json({
-      error: `${req.params.app} has no server-side leaderboard yet, so there is nothing to fairly pick a winner from.`,
-      note: 'See /api/stats/engagement/bettermade for what would need to exist first.',
-    });
-  }
-
-  const board = await getCarspootzLeaderboard();
-  const top = board.entries?.[0];
-  if (!top) return res.status(404).json({ error: 'No leaderboard data available yet.' });
-
-  const code = generateCouponCode('SPOT');
-  const winnerHandle = top.handle;
-  const metricValue  = top.spots ?? top.xp ?? 0;
-  const metricLabel  = top.spots != null ? 'car spots' : 'XP';
-
-  const message = await callClaude(
-    'You write one-sentence, upbeat but not cheesy coupon-reveal announcements for the top player on an indie car-spotting app leaderboard. No markdown, no emoji.',
-    `Winner handle: "${winnerHandle}". This period's total: ${metricValue} ${metricLabel}. Coupon code: ${code}.`
-  ) || `Congrats @${winnerHandle} — top of the board with ${metricValue} ${metricLabel} this month! Use code ${code} for 20% off at the 2AM store.`;
-
-  const record = {
-    app: appKey,
-    month: monthKey,
-    winnerHandle,
-    metricLabel,
-    metricValue,
-    code,
-    message,
-    leaderboardSource: board.source,
-    leaderboardPeriod: board.period,
-    generatedAt: new Date().toISOString(),
-  };
-  winners.push(record);
-  saveWinners(winners);
-  res.json(record);
+// ── Coupons/sales — proxied through mambru-backend, the source of truth for
+// real coupons/sales now (superseded the old winners.json monthly-coupon
+// hack, which minted an arbitrary code from the carspootz leaderboard rather
+// than a redeemable one) ─────────────────────────────────────────────────
+app.get('/api/coupons/active', async (req, res) => {
+  const r = await mambruFetch(`/api/coupons/active${req.query.app ? `?app=${req.query.app}` : ''}`);
+  res.status(r.status).json(await r.json());
 });
 
-app.get('/api/coupon/winners', (req, res) => res.json({ winners: loadWinners() }));
+app.post('/api/coupons/create', async (req, res) => {
+  const r = await mambruFetch('/api/coupons/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req.body),
+  });
+  res.status(r.status).json(await r.json());
+});
+
+app.get('/api/coupons/stats', async (req, res) => {
+  const r = await mambruFetch('/api/coupons/stats');
+  res.status(r.status).json(await r.json());
+});
+
+app.get('/api/sales/recent', async (req, res) => {
+  const qs = new URLSearchParams(req.query).toString();
+  const r = await mambruFetch(`/api/sales/recent${qs ? `?${qs}` : ''}`);
+  res.status(r.status).json(await r.json());
+});
+
+app.get('/api/sales/stats', async (req, res) => {
+  const r = await mambruFetch('/api/sales/stats');
+  res.status(r.status).json(await r.json());
+});
+
+app.get('/api/stats/mambru', async (req, res) => {
+  const r = await mambruFetch('/api/stats/dashboard');
+  res.status(r.status).json(await r.json());
+});
 
 app.listen(PORT, () => console.log(`nighthq-dashboard-backend listening on :${PORT}`));

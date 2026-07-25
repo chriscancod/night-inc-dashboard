@@ -1,19 +1,19 @@
 /* nighthq live dashboard — polls the unified backend and renders stat
    panels. No build step, no framework — matches the rest of the portfolio. */
 
-const CONFIG = window.DASH_CONFIG || { BACKEND_URL: 'http://localhost:4100' };
+const CONFIG = window.DASH_CONFIG || { BACKEND_URL: 'http://localhost:4200' };
 const REFRESH_MS = 60000;
-const PW_KEY = 'nighthq_dash_pw';
+const TOKEN_KEY = 'nighthq_dash_token';
 
 function $(sel) { return document.querySelector(sel); }
 
 async function fetchJSON(path, opts = {}) {
-  const pw = sessionStorage.getItem(PW_KEY);
+  const token = sessionStorage.getItem(TOKEN_KEY);
   const res = await fetch(`${CONFIG.BACKEND_URL}${path}`, {
     ...opts,
-    headers: { ...(opts.headers || {}), ...(pw ? { 'x-dashboard-password': pw } : {}) },
+    headers: { ...(opts.headers || {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
   });
-  if (res.status === 401) { showAuthGate(); throw new Error('Unauthorized'); }
+  if (res.status === 401) { sessionStorage.removeItem(TOKEN_KEY); showAuthGate(); throw new Error('Unauthorized'); }
   if (!res.ok) throw new Error(`${path} → ${res.status}`);
   return res.json();
 }
@@ -33,23 +33,38 @@ function hideAuthGate() {
   if (content) content.style.display = 'block';
 }
 
-async function checkPassword(password) {
-  const res = await fetch(`${CONFIG.BACKEND_URL}/api/auth/check`, {
+// Logs in against the mega backend's shared JWT auth (routes/auth.js) —
+// email is omitted so the server defaults to its own ADMIN_EMAIL, keeping
+// this a single-password login like before, just token-based now instead of
+// resending the raw password on every request.
+async function login(password) {
+  const res = await fetch(`${CONFIG.BACKEND_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),
   });
-  return res.ok;
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.success ? data.token : null;
+}
+
+async function verifyToken(token) {
+  const res = await fetch(`${CONFIG.BACKEND_URL}/api/auth/verify`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  return !!data.valid;
 }
 
 async function initAuth() {
-  const stored = sessionStorage.getItem(PW_KEY);
-  if (stored && await checkPassword(stored)) {
+  const stored = sessionStorage.getItem(TOKEN_KEY);
+  if (stored && await verifyToken(stored)) {
     hideAuthGate();
     startDashboard();
     return;
   }
-  sessionStorage.removeItem(PW_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
   showAuthGate();
 
   const submit = document.getElementById('auth-submit');
@@ -58,9 +73,9 @@ async function initAuth() {
   if (!submit || !input) return;
 
   const attempt = async () => {
-    const ok = await checkPassword(input.value);
-    if (ok) {
-      sessionStorage.setItem(PW_KEY, input.value);
+    const token = await login(input.value);
+    if (token) {
+      sessionStorage.setItem(TOKEN_KEY, token);
       error.style.display = 'none';
       hideAuthGate();
       startDashboard();
@@ -232,7 +247,16 @@ async function loadLeaderboard() {
 
 async function loadWinner() {
   try {
-    const d = await fetchJSON('/api/coupon/monthly-winner/carspootz');
+    const res = await fetch(`${CONFIG.BACKEND_URL}/api/coupon/monthly-winner/carspootz`, {
+      headers: { authorization: `Bearer ${sessionStorage.getItem(TOKEN_KEY) || ''}` },
+    });
+    if (res.status === 404) {
+      setHTML('winner-panel', `<div class="panel-head"><div class="panel-title">This Month's Winner</div></div><div class="skel">No winner yet — use "Close Last Month" below to mint the first one.</div>`);
+      return;
+    }
+    if (res.status === 401) { showAuthGate(); return; }
+    if (!res.ok) throw new Error(`winner → ${res.status}`);
+    const d = await res.json();
     setHTML('winner-panel', `
       <div class="panel-head">
         <div class="panel-title">This Month's Winner — ${d.month}</div>
@@ -246,6 +270,33 @@ async function loadWinner() {
     `);
   } catch (e) {
     setHTML('winner-panel', `<div class="err">Winner data unavailable.</div>`);
+  }
+}
+
+// Manually triggered — mints a real, redeemable coupon for last month's
+// carspootz leaderboard winner. Idempotent: closing an already-closed month
+// just returns the existing coupon instead of minting a second one.
+async function closeMonth() {
+  const btn = document.getElementById('close-month-btn');
+  const status = document.getElementById('close-month-status');
+  if (!btn || !status) return;
+  btn.disabled = true;
+  status.textContent = 'Closing last month…';
+  try {
+    const d = await fetchJSON('/api/competitions/carspootz-monthly/close', { method: 'POST' });
+    if (d.noWinner) {
+      status.textContent = `No scans recorded for ${d.period} — nothing to close.`;
+    } else if (d.alreadyRan) {
+      status.textContent = `${d.period} was already closed — winner @${d.winner}, code ${d.code}.`;
+    } else {
+      status.textContent = `Closed ${d.period} — winner @${d.winner}, code ${d.code}.`;
+    }
+    await loadWinner();
+    await loadWinnersHistory();
+  } catch (e) {
+    status.textContent = 'Could not close the month — check the console.';
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -305,6 +356,8 @@ function refreshAll() {
 function startDashboard() {
   refreshAll();
   setInterval(refreshAll, REFRESH_MS);
+  const closeBtn = document.getElementById('close-month-btn');
+  if (closeBtn) closeBtn.addEventListener('click', closeMonth);
 }
 
 document.addEventListener('DOMContentLoaded', initAuth);

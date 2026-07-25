@@ -54,7 +54,13 @@
 
   <div class="grid" style="grid-template-columns:1.3fr 1fr" id="leaderboard">
     <div class="panel" id="leaderboard-panel"><div class="skel">Loading leaderboard…</div></div>
-    <div class="panel" id="winner-panel"><div class="skel">Loading this month's winner…</div></div>
+    <div class="panel">
+      <div id="winner-panel"><div class="skel">Loading this month's winner…</div></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border, rgba(255,255,255,.08))">
+        <button id="close-month-btn" class="btn" style="width:100%;font-size:11px">Close Last Month &amp; Mint Winner Coupon</button>
+        <p id="close-month-status" style="font-size:10px;margin-top:8px;opacity:.7"></p>
+      </div>
+    </div>
   </div>
 
   <div class="grid" style="grid-template-columns:1fr 1fr" id="engagement">
@@ -72,10 +78,9 @@
 
 <script>
   window.DASH_CONFIG = {
-    // Point this at the deployed backend URL once dashboard/backend is on
-    // Railway (same pattern as cungus's CONFIG.BACKEND_URL). Defaults to
-    // localhost for local dev.
-    BACKEND_URL: 'http://localhost:4100',
+    // The mega backend (Milestone 5 folded dashboard/backend's stats routes
+    // in here — this is no longer a separate service).
+    BACKEND_URL: 'https://mega-backend-production.up.railway.app',
   };
 </script>
 <script src="shared/dashboard.js"></script>
