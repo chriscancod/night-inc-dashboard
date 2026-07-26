@@ -218,6 +218,46 @@ async function loadDownloads() {
   }
 }
 
+function buildStateColor(state) {
+  if (state === 'VALID') return 'var(--green)';
+  if (state === 'PROCESSING') return 'var(--amber)';
+  if (state === 'FAILED' || state === 'INVALID') return 'var(--red)';
+  return 'var(--muted-dim)';
+}
+
+async function loadTestFlight() {
+  try {
+    const d = await fetchJSON('/api/stats/testflight');
+    const cards = d.apps.map(app => {
+      if (app.error) return `<div class="stat-tile"><div class="stat-label">${app.app}</div><div class="panel-note" style="margin:8px 0 0;padding:0;border:none">${app.error}</div></div>`;
+      const build = app.latestBuild;
+      const buildLine = build && !build.error
+        ? `Build ${build.version} · <span style="color:${buildStateColor(build.processingState)}">${build.processingState}</span>`
+        : 'No builds yet';
+      const uploaded = build?.uploadedDate ? new Date(build.uploadedDate).toLocaleDateString() : '—';
+      return `
+        <div class="stat-tile">
+          <div class="stat-label">${app.app}</div>
+          <div class="stat-value">${fmtNum(app.betaTesters)}</div>
+          <div class="stat-sub">beta testers</div>
+          <div class="stat-sub" style="margin-top:8px">${buildLine}</div>
+          <div class="stat-sub">Uploaded ${uploaded}</div>
+        </div>
+      `;
+    }).join('');
+    setHTML('testflight-panel', `
+      <div class="panel-head">
+        <div class="panel-title">TestFlight</div>
+        ${badge(d.source)}
+      </div>
+      <div class="stat-grid">${cards}</div>
+      ${d.note ? `<div class="panel-note">${d.note}</div>` : ''}
+    `);
+  } catch (e) {
+    setHTML('testflight-panel', `<div class="err">TestFlight status unavailable.</div>`);
+  }
+}
+
 async function loadLeaderboard() {
   try {
     const d = await fetchJSON('/api/stats/leaderboard/carspootz');
@@ -423,6 +463,7 @@ function refreshAll() {
   loadInsight();
   loadPurchases();
   loadDownloads();
+  loadTestFlight();
   loadLeaderboard();
   loadWinner();
   loadWinnersHistory();
