@@ -258,6 +258,39 @@ async function loadTestFlight() {
   }
 }
 
+async function loadLoyalty() {
+  try {
+    const d = await fetchJSON('/api/stats/loyalty');
+    const tierRows = d.by_tier.map(t => `
+      <div class="mini-row"><span class="k">${t.tier}</span><span class="v">${fmtNum(t.accounts)}</span></div>
+    `).join('') || `<div class="skel">No accounts yet.</div>`;
+    setHTML('loyalty-panel', `
+      <div class="panel-head">
+        <div class="panel-title">Loyalty &amp; Rewards</div>
+        ${badge('live')}
+      </div>
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-label">Accounts</div>
+          <div class="stat-value">${fmtNum(d.total_accounts)}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Points Outstanding</div>
+          <div class="stat-value">${fmtNum(d.points_outstanding)}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Rewards Minted</div>
+          <div class="stat-value">${fmtNum(d.rewards_minted)}</div>
+          <div class="stat-sub">${fmtNum(d.rewards_redeemed)} redeemed · ${fmtMoney(d.reward_value_minted * 100)} value</div>
+        </div>
+      </div>
+      <div style="margin-top:14px">${tierRows}</div>
+    `);
+  } catch (e) {
+    setHTML('loyalty-panel', `<div class="err">Loyalty stats unavailable.</div>`);
+  }
+}
+
 async function loadLeaderboard() {
   try {
     const d = await fetchJSON('/api/stats/leaderboard/carspootz');
@@ -464,6 +497,7 @@ function refreshAll() {
   loadPurchases();
   loadDownloads();
   loadTestFlight();
+  loadLoyalty();
   loadLeaderboard();
   loadWinner();
   loadWinnersHistory();
