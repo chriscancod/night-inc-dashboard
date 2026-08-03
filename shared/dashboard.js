@@ -291,6 +291,52 @@ async function loadLoyalty() {
   }
 }
 
+async function loadComms() {
+  try {
+    const d = await fetchJSON('/api/stats/comms');
+    const sentByChannel = {};
+    for (const row of d.by_channel) {
+      if (row.status !== 'sent') continue;
+      sentByChannel[row.channel] = (sentByChannel[row.channel] || 0) + row.count;
+    }
+    const channelRows = ['email', 'chat', 'sms'].map(ch => `
+      <div class="mini-row"><span class="k">${ch}</span><span class="v">${fmtNum(sentByChannel[ch] || 0)}</span></div>
+    `).join('');
+    const templateRows = d.by_template.map(t => `
+      <div class="mini-row"><span class="k">${t.template}</span><span class="v">${fmtNum(t.count)}</span></div>
+    `).join('') || `<div class="skel">No sends yet.</div>`;
+    const recentRows = d.recent.map(r => `
+      <div class="mini-row"><span class="k">${r.channel} · ${r.template}${r.recipient ? ` → ${r.recipient}` : ''}</span><span class="v">${r.status === 'sent' ? '✓' : r.status === 'failed' ? '✕' : '—'} ${new Date(r.created_at).toLocaleString()}</span></div>
+    `).join('') || `<div class="skel">Nothing logged yet.</div>`;
+    const smsConfigured = sentByChannel.sms !== undefined || d.by_channel.some(r => r.channel === 'sms' && r.status === 'sent');
+    setHTML('comms-panel', `
+      <div class="panel-head">
+        <div class="panel-title">Omnichannel Comms</div>
+        ${badge('live')}
+      </div>
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-label">Email Sent</div>
+          <div class="stat-value">${fmtNum(sentByChannel.email || 0)}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Chat Replies</div>
+          <div class="stat-value">${fmtNum(sentByChannel.chat || 0)}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">SMS</div>
+          <div class="stat-value">${fmtNum(sentByChannel.sms || 0)}</div>
+          <div class="stat-sub">${smsConfigured ? 'sent' : 'no Twilio account yet'}</div>
+        </div>
+      </div>
+      <div style="margin-top:14px">${templateRows}</div>
+      <div style="margin-top:14px;opacity:.8;font-size:12px">${recentRows}</div>
+    `);
+  } catch (e) {
+    setHTML('comms-panel', `<div class="err">Comms stats unavailable.</div>`);
+  }
+}
+
 async function loadLeaderboard() {
   try {
     const d = await fetchJSON('/api/stats/leaderboard/carspootz');
@@ -498,6 +544,7 @@ function refreshAll() {
   loadDownloads();
   loadTestFlight();
   loadLoyalty();
+  loadComms();
   loadLeaderboard();
   loadWinner();
   loadWinnersHistory();
