@@ -12,9 +12,9 @@
   --card2:#111119;
   --border:rgba(255,255,255,0.07);
   --border-hi:rgba(255,255,255,0.14);
-  --ice:#b8dff8;
-  --ice-dim:rgba(184,223,248,0.25);
-  --ice-glow:rgba(184,223,248,0.08);
+  --ice:#ff4455;
+  --ice-dim:rgba(255,68,85,0.25);
+  --ice-glow:rgba(255,68,85,0.08);
   --white:#eef1ff;
   --muted:rgba(238,241,255,0.45);
   --muted-dim:rgba(238,241,255,0.28);
@@ -104,7 +104,7 @@ img{max-width:100%;display:block}
 .panel-title{font-family:var(--d);font-size:22px;letter-spacing:.02em}
 .panel-note{font-size:12px;color:var(--muted-dim);font-family:var(--m);line-height:1.6;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
 
-.insight-banner{background:linear-gradient(120deg,rgba(184,223,248,.08),rgba(192,132,252,.05));border:1px solid var(--ice-dim);border-radius:4px;padding:24px 28px;margin-bottom:32px;display:flex;gap:16px;align-items:flex-start}
+.insight-banner{background:linear-gradient(120deg,rgba(255,68,85,.08),rgba(192,132,252,.05));border:1px solid var(--ice-dim);border-radius:4px;padding:24px 28px;margin-bottom:32px;display:flex;gap:16px;align-items:flex-start}
 .insight-banner .glyph{font-family:var(--d);font-size:22px;color:var(--ice);flex-shrink:0}
 .insight-banner p{font-family:var(--s);font-size:17px;line-height:1.55;color:var(--white)}
 .insight-banner .meta{font-family:var(--m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted-dim);margin-top:10px}
