@@ -1,35 +1,47 @@
 /* ============================================================
    nighthq — shared design system for the studio portfolio +
-   live dashboard. Same token language as the cungus storefront
-   (black/ice/white, Bebas Neue / Cormorant Garamond / Space Mono)
-   so the whole Night.inc portfolio reads as one brand.
+   live dashboard.
+
+   ECOSYSTEM UNITY PASS (2026-08-23): used to share cungus's
+   ice-red/cool-white/Bebas Neue identity ("so the whole Night.inc
+   portfolio reads as one brand") — now repainted to mambru-inc's
+   dark-luxury anchor instead, same pass, same token map, as cungus.
    ============================================================ */
 
 :root{
-  --black:#010103;
-  --deep:#05050a;
-  --card:#0b0b13;
-  --card2:#111119;
+  --black:#050506;
+  --deep:#08080b;
+  --card:#0d0d11;
+  --card2:#131317;
   --border:rgba(255,255,255,0.07);
-  --border-hi:rgba(255,255,255,0.14);
-  --ice:#ff4455;
-  --ice-dim:rgba(255,68,85,0.25);
-  --ice-glow:rgba(255,68,85,0.08);
-  --white:#eef1ff;
-  --muted:rgba(238,241,255,0.45);
-  --muted-dim:rgba(238,241,255,0.28);
+  --border-hi:rgba(255,255,255,0.16);
+  --ice:#e2263a;
+  --ice-dim:rgba(226,38,58,0.22);
+  --ice-glow:rgba(226,38,58,0.12);
+  /* Gold retired 2026-08-26 (Chris: "mambru inc is red white and black"). This token was already
+     effectively dead — .rank-pip.gold's own background rgba(255,200,87,...) matches --amber's hex,
+     not this variable's — so repointing it to white is a no-op change, not a visible one.
+     --amber (below) is left alone: it's a functional status color (mock/degraded/pending
+     indicators), not a brand-accent use of gold, and removing it would remove real information
+     (can't tell "degraded" from "offline" if both go the same color). Flagging that distinction
+     rather than silently applying "retire gold" to something that isn't really gold's brand role. */
+  --gold:var(--white);
+  --white:#f5f3f0;
+  --muted:rgba(245,243,240,0.45);
+  --muted-dim:rgba(245,243,240,0.3);
   --green:#3ee8a0;
   --amber:#ffc857;
   --red:#ff4455;
   --purple:#c084fc;
-  --d:'Bebas Neue',sans-serif;
-  --s:'Cormorant Garamond',serif;
+  --d:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --s:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   --m:'Space Mono',monospace;
+  --dh:'Space Grotesk','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--black);color:var(--white);font-family:var(--m);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{background:var(--black);color:var(--white);font-family:var(--d);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:inherit}
 img{max-width:100%;display:block}
 
@@ -48,11 +60,11 @@ img{max-width:100%;display:block}
 /* ── hero ────────────────────────────────────────────────── */
 .hero{padding:100px 0 70px;text-align:center}
 .hero-eye{font-size:9px;letter-spacing:.5em;text-transform:uppercase;color:var(--ice);margin-bottom:18px}
-.hero-title{font-family:var(--d);font-size:clamp(44px,9vw,96px);letter-spacing:.03em;line-height:.92;margin-bottom:20px}
+.hero-title{font-family:var(--dh);font-weight:700;font-size:clamp(44px,9vw,96px);letter-spacing:-.02em;line-height:.94;margin-bottom:20px}
 .hero-sub{font-family:var(--s);font-size:clamp(16px,2.2vw,22px);color:var(--muted);max-width:560px;margin:0 auto 34px;line-height:1.5}
 .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 
-.btn{font-family:var(--m);font-size:9px;letter-spacing:.22em;text-transform:uppercase;padding:14px 32px;text-decoration:none;display:inline-flex;align-items:center;gap:10px;border-radius:2px;transition:all .2s;cursor:pointer;border:1px solid transparent}
+.btn{font-family:var(--d);font-size:9px;letter-spacing:.22em;text-transform:uppercase;padding:14px 32px;text-decoration:none;display:inline-flex;align-items:center;gap:10px;border-radius:2px;transition:all .2s;cursor:pointer;border:1px solid transparent}
 .btn-fill{background:var(--white);color:var(--black);font-weight:700}
 .btn-fill:hover{background:var(--ice)}
 .btn-line{border-color:var(--border-hi);color:var(--white);background:transparent}
@@ -62,7 +74,7 @@ img{max-width:100%;display:block}
 .section{padding:70px 0}
 .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:36px;flex-wrap:wrap}
 .section-eye{font-size:9px;letter-spacing:.4em;text-transform:uppercase;color:var(--ice);margin-bottom:10px}
-.section-title{font-family:var(--d);font-size:clamp(28px,4vw,44px);letter-spacing:.02em}
+.section-title{font-family:var(--dh);font-weight:700;font-size:clamp(28px,4vw,44px);letter-spacing:-.02em}
 .section-note{font-family:var(--s);font-style:italic;color:var(--muted);font-size:15px}
 
 /* ── project grid ────────────────────────────────────────── */
@@ -75,7 +87,7 @@ img{max-width:100%;display:block}
 .proj-tag{display:inline-flex;align-items:center;gap:6px;font-size:8px;letter-spacing:.22em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--border-hi);border-radius:20px;color:var(--muted);margin-bottom:18px}
 .proj-tag.live{color:var(--green);border-color:rgba(62,232,160,.3)}
 .proj-tag.dev{color:var(--amber);border-color:rgba(255,200,87,.3)}
-.proj-name{font-family:var(--d);font-size:34px;letter-spacing:.02em;margin-bottom:8px}
+.proj-name{font-family:var(--dh);font-weight:700;font-size:34px;letter-spacing:-.01em;margin-bottom:8px}
 .proj-desc{font-family:var(--s);font-size:16px;color:var(--muted);line-height:1.55;margin-bottom:22px;min-height:72px}
 .proj-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
 .proj-chip{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted-dim)}
@@ -101,10 +113,10 @@ img{max-width:100%;display:block}
 /* ── panels / cards ──────────────────────────────────────── */
 .panel{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:28px;margin-bottom:20px}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
-.panel-title{font-family:var(--d);font-size:22px;letter-spacing:.02em}
+.panel-title{font-family:var(--dh);font-weight:700;font-size:22px;letter-spacing:-.01em}
 .panel-note{font-size:12px;color:var(--muted-dim);font-family:var(--m);line-height:1.6;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
 
-.insight-banner{background:linear-gradient(120deg,rgba(255,68,85,.08),rgba(192,132,252,.05));border:1px solid var(--ice-dim);border-radius:4px;padding:24px 28px;margin-bottom:32px;display:flex;gap:16px;align-items:flex-start}
+.insight-banner{background:linear-gradient(120deg,rgba(226,38,58,.1),rgba(192,132,252,.05));border:1px solid var(--ice-dim);border-radius:4px;padding:24px 28px;margin-bottom:32px;display:flex;gap:16px;align-items:flex-start}
 .insight-banner .glyph{font-family:var(--d);font-size:22px;color:var(--ice);flex-shrink:0}
 .insight-banner p{font-family:var(--s);font-size:17px;line-height:1.55;color:var(--white)}
 .insight-banner .meta{font-family:var(--m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted-dim);margin-top:10px}
@@ -168,7 +180,7 @@ table.board tr.rank-1 td{color:var(--ice)}
 .auth-gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--black);padding:20px}
 .auth-box{width:100%;max-width:340px;text-align:center}
 .auth-box .hero-eye{margin-bottom:14px}
-.auth-box h2{font-family:var(--d);font-size:30px;letter-spacing:.02em;margin-bottom:22px}
+.auth-box h2{font-family:var(--dh);font-weight:700;font-size:30px;letter-spacing:-.01em;margin-bottom:22px}
 .auth-input{width:100%;background:var(--card);border:1px solid var(--border-hi);color:var(--white);font-family:var(--m);font-size:14px;padding:14px 16px;border-radius:2px;letter-spacing:.05em}
 .auth-input:focus{outline:none;border-color:var(--ice)}
 .auth-box .btn{cursor:pointer}

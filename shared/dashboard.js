@@ -1,3 +1,4 @@
+/* Last edited: 2026-09-03 06:25 PM EDT (winner panel + history show top 5, not just #1) */
 /* nighthq live dashboard — polls the unified backend and renders stat
    panels. No build step, no framework — matches the rest of the portfolio. */
 
@@ -376,16 +377,29 @@ async function loadWinner() {
     if (res.status === 401) { showAuthGate(); return; }
     if (!res.ok) throw new Error(`winner → ${res.status}`);
     const d = await res.json();
+    // 2026-09-03: top 5 now get a coupon, not just #1 (see
+    // mambru-backend/lib/competitions.js) — render the whole list `winners`
+    // carries, falling back to the old single-winner fields if an older
+    // backend build is still deployed and `winners` isn't present yet.
+    const winners = d.winners && d.winners.length ? d.winners : [
+      { rank: 1, winnerHandle: d.winnerHandle, metricValue: d.metricValue, code: d.code, message: d.message },
+    ];
+    const rows = winners.map((w) => `
+      <div class="coupon">
+        <div class="panel-head">
+          <span class="badge live">#${w.rank} · @${w.winnerHandle}</span>
+          <span class="v">${fmtNum(w.metricValue)} ${d.metricLabel}</span>
+        </div>
+        <div class="coupon-code">${w.code}</div>
+        <div class="coupon-msg">${w.message}</div>
+      </div>
+    `).join('');
     setHTML('winner-panel', `
       <div class="panel-head">
-        <div class="panel-title">This Month's Winner — ${d.month}</div>
-        <span class="badge live">@${d.winnerHandle}</span>
+        <div class="panel-title">This Month's Top 5 — ${d.month}</div>
       </div>
-      <div class="coupon">
-        <div class="coupon-code">${d.code}</div>
-        <div class="coupon-msg">${d.message}</div>
-      </div>
-      <div class="panel-note">Won with ${fmtNum(d.metricValue)} ${d.metricLabel} · leaderboard source: ${d.leaderboardSource} (${d.leaderboardPeriod})</div>
+      ${rows}
+      <div class="panel-note">leaderboard source: ${d.leaderboardSource} (${d.leaderboardPeriod})</div>
     `);
   } catch (e) {
     setHTML('winner-panel', `<div class="err">Winner data unavailable.</div>`);
@@ -406,9 +420,9 @@ async function closeMonth() {
     if (d.noWinner) {
       status.textContent = `No scans recorded for ${d.period} — nothing to close.`;
     } else if (d.alreadyRan) {
-      status.textContent = `${d.period} was already closed — winner @${d.winner}, code ${d.code}.`;
+      status.textContent = `${d.period} was already closed — ${(d.winners || []).length || 1} winner(s) minted, top @${d.winner}.`;
     } else {
-      status.textContent = `Closed ${d.period} — winner @${d.winner}, code ${d.code}.`;
+      status.textContent = `Closed ${d.period} — ${(d.winners || []).length || 1} coupons minted, top @${d.winner}.`;
     }
     await loadWinner();
     await loadWinnersHistory();
@@ -424,7 +438,7 @@ async function loadWinnersHistory() {
     const d = await fetchJSON('/api/coupon/winners');
     const rows = (d.winners || []).slice().reverse().map(w => `
       <div class="mini-row">
-        <span class="k">${w.month} · @${w.winnerHandle}</span>
+        <span class="k">${w.month} · #${w.rank || 1} · @${w.winnerHandle}</span>
         <span class="v">${w.code}</span>
       </div>
     `).join('') || `<div class="skel">No winners recorded yet.</div>`;
